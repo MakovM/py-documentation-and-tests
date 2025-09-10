@@ -50,8 +50,8 @@ class Movie(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     duration = models.IntegerField()
-    genres = models.ManyToManyField(Genre)
-    actors = models.ManyToManyField(Actor)
+    genres = models.ManyToManyField(Genre, blank=True)
+    actors = models.ManyToManyField(Actor, blank=True)
     image = models.ImageField(null=True, upload_to=movie_image_file_path)
 
     class Meta:
@@ -63,8 +63,12 @@ class Movie(models.Model):
 
 class MovieSession(models.Model):
     show_time = models.DateTimeField()
-    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
-    cinema_hall = models.ForeignKey(CinemaHall, on_delete=models.CASCADE)
+    movie = models.ForeignKey(
+        Movie, on_delete=models.CASCADE, related_name="movie_sessions"
+    )
+    cinema_hall = models.ForeignKey(
+        CinemaHall, on_delete=models.CASCADE, related_name="movie_sessions"
+    )
 
     class Meta:
         ordering = ["-show_time"]
@@ -76,7 +80,9 @@ class MovieSession(models.Model):
 class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="orders"
     )
 
     def __str__(self):
@@ -88,10 +94,14 @@ class Order(models.Model):
 
 class Ticket(models.Model):
     movie_session = models.ForeignKey(
-        MovieSession, on_delete=models.CASCADE, related_name="tickets"
+        MovieSession,
+        on_delete=models.CASCADE,
+        related_name="tickets"
     )
     order = models.ForeignKey(
-        Order, on_delete=models.CASCADE, related_name="tickets"
+        Order,
+        on_delete=models.CASCADE,
+        related_name="tickets"
     )
     row = models.IntegerField()
     seat = models.IntegerField()
@@ -123,6 +133,7 @@ class Ticket(models.Model):
 
     def save(
         self,
+        *args,
         force_insert=False,
         force_update=False,
         using=None,
@@ -134,9 +145,8 @@ class Ticket(models.Model):
         )
 
     def __str__(self):
-        return (
-            f"{str(self.movie_session)} (row: {self.row}, seat: {self.seat})"
-        )
+        return (f"{str(self.movie_session)} "
+                f"(row: {self.row}, seat: {self.seat})")
 
     class Meta:
         unique_together = ("movie_session", "row", "seat")
